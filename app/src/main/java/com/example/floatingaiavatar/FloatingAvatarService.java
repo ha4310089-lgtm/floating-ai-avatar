@@ -52,11 +52,30 @@ public class FloatingAvatarService extends Service {
             try {
                 URL u = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=" + KEY);
                 HttpURLConnection c = (HttpURLConnection) u.openConnection();
-                c.setRequestMethod("POST"); c.setRequestProperty("Content-Type", "application/json"); c.setDoOutput(true);
-                String body = "{\"contents\":[{\"parts\":[{\"text\":\"You are a mobile voice assistant. Reply briefly in Hindi. User: " + q.replace("\"", "") + "\"}]}]}";
-                c.getOutputStream().write(body.getBytes());
+                c.setRequestMethod("POST");
+                c.setRequestProperty("Content-Type", "application/json");
+                c.setDoOutput(true);
+
+                JSONObject part = new JSONObject();
+                part.put("text", "You are a mobile voice assistant. Reply briefly in Hindi. User: " + q);
+                JSONArray parts = new JSONArray();
+                parts.put(part);
+                JSONObject content = new JSONObject();
+                content.put("parts", parts);
+                JSONArray contents = new JSONArray();
+                contents.put(content);
+                JSONObject root = new JSONObject();
+                root.put("contents", contents);
+
+                byte[] out = root.toString().getBytes("UTF-8");
+                c.getOutputStream().write(out);
+
                 BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream()));
-                StringBuilder sb = new StringBuilder(); String l; while ((l = br.readLine()) != null) sb.append(l);
+                StringBuilder sb = new StringBuilder();
+                String l;
+                while ((l = br.readLine()) != null) sb.append(l);
+                br.close();
+
                 JSONObject res = new JSONObject(sb.toString());
                 String reply = res.getJSONArray("candidates").getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text");
                 new Handler(Looper.getMainLooper()).post(() -> tts.speak(reply, TextToSpeech.QUEUE_FLUSH, null, null));
